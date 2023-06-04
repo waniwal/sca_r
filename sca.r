@@ -222,7 +222,7 @@ DEG_all <- rbind.data.frame()
 for(item in rev(unique(aging$celltype))){
     tmp <- subset(aging,idents = item)
     errCheck = tryCatch({
-      tmp.markers <- FindMarkers(tmp,group.by = "sample", ident.1 = "expr", ident.2 = "ctrl", min.pct = 0.25)
+      tmp.markers <- FindMarkers(tmp,group.by = "sample", ident.1 = "expr", ident.2 = "ctrl", min.pct = 0.1,logfc.threshold = 0.25)
       tmp.markers$gene <- rownames(tmp.markers)
       0
     },error = function(e){
@@ -260,8 +260,8 @@ go.enrich=function(gene){
   ego <- enrichGO(gene         = eg[,2],OrgDb= org.Hs.eg.db,
                   ont           = "ALL",
                   pAdjustMethod = "BH",
-                  pvalueCutoff  = 0.1,
-                  qvalueCutoff  = 0.1,readable = T)
+                  pvalueCutoff  = 0.4,
+                  qvalueCutoff  = 0.2,readable = T)
   if (is.null(ego) || is.null(ego@result) || length(rownames(ego@result)) == 0){
      return(NULL);
   }
