@@ -30,16 +30,16 @@ creatobj2=function(file,project){
   return(obj)}
 
 ### 判断输入样本的格式
-dir <- "[{"fileName":"第三版行业词和场景词.csv","filePath":"F:/tmp/input/202304/13/uid1_20230413235340_b1a31d8652884fdbb421b06e92daac0a/1_第三版行业词和场景词.csv","size":2320},{"fileName":"第三版行业词和场景词.xlsx","filePath":"F:/tmp/input/202304/13/uid1_20230413235340_b1a31d8652884fdbb421b06e92daac0a/2_第三版行业词和场景词.xlsx","size":10112},{"fileName":"第一版核心词.csv","filePath":"F:/tmp/input/202304/13/uid1_20230413235340_b1a31d8652884fdbb421b06e92daac0a/3_第一版核心词.csv","size":129}]"
+dir <- "/data/sca/input/202306/02/uid1_20230602220441_69c150b9d0464f9c90865f9543cd8014"
 flist <- list.files(dir, include.dirs = F,full.names = TRUE,recursive = F)
 
 ### create S4格式
 if(length(flist)==3){
   print("加载实验组3个文件")
-  pbmc_expr=creatobj(dir,"expr_4")
+  pbmc_expr=creatobj(dir,"expr")
 }else{
   print("加载实验组1个文件")
-  pbmc_expr=creatobj2(paste0(dir,"/*",collapse = NULL),"expr_4") ###这里project可以换成疾病的类型
+  pbmc_expr=creatobj2(paste0(dir,"/*",collapse = NULL),"expr") ###这里project可以换成疾病的类型
 }
 
 jsonlite::toJSON(data.frame(gene = dim(pbmc_expr)[1], cell = dim(pbmc_expr)[2]), pretty = F)
@@ -57,20 +57,11 @@ if(length(flist)==3){
   pbmc_expr=creatobj2(paste0(dir,"/*",collapse = NULL),"ctrl") ###这里project可以换成疾病的类型
 }
 
-pbmc=merge(pbmc_expr,pbmc_ctrl,add.cell.ids = c("expr_4","ctrl"))
+pbmc=merge(pbmc_expr,pbmc_ctrl,add.cell.ids = c("expr","ctrl"))
 
 ## 添加分组信息
-# 先添加一个样本分组
-merge_metadata <- pbmc@meta.data
+pbmc$sample=stringr::str_split_fixed(colnames(pbmc),"_",n=2)[,1]
 
-## sample是为了区分数据来源信息
-
-merge_metadata$sample <- NA
-merge_metadata$cells <- rownames(merge_metadata)
-merge_metadata$sample[which(str_detect(merge_metadata$cells, "^expr_4"))] <- "expr_4"
-merge_metadata$sample[which(str_detect(merge_metadata$cells, "^ctrl"))] <- "ctrl"
-
-pbmc@meta.data <- merge_metadata
 
 ### 质量控制 QC
 
@@ -231,7 +222,7 @@ DEG_all <- rbind.data.frame()
 for(item in rev(unique(aging$celltype))){
     tmp <- subset(aging,idents = item)
     errCheck = tryCatch({
-      tmp.markers <- FindMarkers(tmp,group.by = "sample", ident.1 = "expr_4", ident.2 = "ctrl", min.pct = 0.25)
+      tmp.markers <- FindMarkers(tmp,group.by = "sample", ident.1 = "expr", ident.2 = "ctrl", min.pct = 0.25)
       tmp.markers$gene <- rownames(tmp.markers)
       0
     },error = function(e){
@@ -292,7 +283,7 @@ gene.enrich=function(data){
 }
 
 ### 上调基因
-up=subset(DEG_all, p_val_adj<0.05 & avg_log2FC > 0)
+up=subset(DEG_all, p_val_adj<0.05 & avg_log2FC > 0.25)
 up.go=gene.enrich(up)
 
 write.csv(up.go, file = "/data/sca/user_data/4/output/upGo.csv")
@@ -300,7 +291,7 @@ write.csv(up.go, file = "/data/sca/user_data/4/output/upGo.csv")
 upGoTopN <- up.go %>% group_by(cluster) %>% arrange(p.adjust) %>% slice_head(n = 15) %>% arrange(desc(Count))
 
 ### 下调基因
-down=subset(DEG_all, p_val_adj<0.05 & avg_log2FC < 0)
+down=subset(DEG_all, p_val_adj<0.05 & avg_log2FC < -0.25)
 down.go=gene.enrich(down)
 
 write.csv(down.go, file = "/data/sca/user_data/4/output/downGo.csv")
@@ -329,6 +320,28 @@ ggsave(
   limitsize = FALSE
 )
 
+#点图#
+up_go_point_plot <- ggplot(upGoTopN,aes(x=cluster,y=reorder(Description,-pvalue),size=Count,color=-log10(pvalue)))+
+  geom_point()+theme_classic()+
+  theme(axis.text.x = element_text(color="black",size=13,angle=0,hjust=0.5),
+        axis.text.y = element_text(color="black",size=13),
+        axis.title.x = element_text( color="black",size=15),
+        axis.title.y = element_text( color="black",size=15))+
+  scale_color_gradient(low="lightgrey", high="red")+
+  xlab("Clusters") +  #x轴标签
+  ylab("Pathway") +  #y轴标签
+  labs(title = "Up Regulate GO Terms Enrichment")+  #设置标题
+  facet_wrap(~ONTOLOGY,ncol = 3)
+
+ggsave(
+  filename = "/data/sca/user_data/4/output/up_go_point_plot.png", # 保存的文件名称。通过后缀来决定生成什么格式的图片
+  width = 4000,             # 宽
+  height = 2000,            # 高
+  units = "px",          # 单位
+  dpi = 250,              # 分辨率DPI
+  plot = up_go_point_plot,
+  limitsize = FALSE
+)
 
 # 下调基因
 #纵向柱状图#
@@ -350,6 +363,31 @@ ggsave(
   units = "px",          # 单位
   dpi = 250,              # 分辨率DPI
   plot = down_go_bar_plot,
+  limitsize = FALSE
+)
+
+
+# 下调基因
+#纵向点图#
+down_go_point_plot <- ggplot(downGoTopN,aes(x=cluster,y=reorder(Description,-pvalue),size=Count,color=-log10(pvalue)))+
+  geom_point()+theme_classic()+
+  theme(axis.text.x = element_text(color="black",size=13,angle=0,hjust=0.5),
+        axis.text.y = element_text(color="black",size=13),
+        axis.title.x = element_text( color="black",size=15),
+        axis.title.y = element_text( color="black",size=15))+
+  scale_color_gradient(low="lightgrey", high="blue")+
+  xlab("Clusters") +  #x轴标签
+  ylab("Pathway") +  #y轴标签
+  labs(title = "Down Regulate GO Terms Enrichment")+  #设置标题
+  facet_wrap(~ONTOLOGY,ncol = 3)
+
+ggsave(
+  filename = "/data/sca/user_data/4/output/down_go_point_plot.png", # 保存的文件名称。通过后缀来决定生成什么格式的图片
+  width = 4000,             # 宽
+  height = 2000,            # 高
+  units = "px",          # 单位
+  dpi = 250,              # 分辨率DPI
+  plot = down_go_point_plot,
   limitsize = FALSE
 )
 
