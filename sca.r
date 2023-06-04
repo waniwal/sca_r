@@ -262,6 +262,9 @@ go.enrich=function(gene){
                   pAdjustMethod = "BH",
                   pvalueCutoff  = 0.4,
                   qvalueCutoff  = 0.2,readable = T)
+  if (is.null(ego) || is.null(ego@result) || length(rownames(ego@result)) == 0){
+     return(NULL);
+  }
   go=data.frame(ego@result)
   go$GeneRatio2<-sapply(go$GeneRatio,function(x) eval(parse(text = x)))
   return(go)
@@ -269,18 +272,19 @@ go.enrich=function(gene){
 
 ### 细胞类型的富集分析,针对基因的
 gene.enrich=function(data){
+  go<- rbind.data.frame()
   for (i in unique(data$cluster)){
     test=subset(data,cluster==i)
     result=go.enrich(test$gene)
-    result$cluster=i
-    if(i==unique(data$cluster)[1]){
-      go=result
-    }else{
-      go=rbind(go,result)
+    if(is.null(result)){
+       next;
     }
+    result$cluster=i
+    go=rbind(go,result)
   }
   return(go)
 }
+
 
 ### 上调基因
 up=subset(DEG_all, p_val_adj<0.05 & avg_log2FC > 0.25)
