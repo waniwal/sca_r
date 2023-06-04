@@ -272,6 +272,7 @@ go.enrich=function(gene){
 
 ### 细胞类型的富集分析,针对基因的
 gene.enrich=function(data){
+  go<- rbind.data.frame()
   for (i in unique(data$cluster)){
     test=subset(data,cluster==i)
     result=go.enrich(test$gene)
@@ -279,11 +280,7 @@ gene.enrich=function(data){
        next;
     }
     result$cluster=i
-    if(i==unique(data$cluster)[1]){
-      go=result
-    }else{
-      go=rbind(go,result)
-    }
+    go=rbind(go,result)
   }
   return(go)
 }
