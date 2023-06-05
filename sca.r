@@ -135,19 +135,6 @@ ggsave(
 #aging.markers=FindAllMarkers(aging,only.pos = T,assay = "RNA",logfc.threshold = 0.25)
 aging.markers <- subset(wilcoxauc(aging, "seurat_clusters"), logFC>=0.15&pct_in >=0.1&pct_out>=0.1) %>% dplyr::rename(gene=feature,cluster=group, avg_log2FC=logFC)
 
-### 测试 Marker 表达  出图
-p_marker <- FeaturePlot(aging, features = c("DAZL","DDX4","MAGEA4","UTF1","FCGR3A","KIT","DMRT1","DMRTB1","STRA8","SYCP3", "SPO11", "MLH3","ZPBP","ID4","PIWIL4","UCHL1", "TNP1", "TNP2", "PRM2","SOX9", "WT1", "AMH", "PRND","FATE1","VWF","PECAM1","CDH5","DLK1", "IGF1","CYP11A1","STAR","NOTCH3","ACTA2","MYH11", "CYP26B1", "WFDC1","CD14", "CD163","C1QA","C1QC","CD8A","CD8B","PTPRC"),label = F, ncol = 5)
-
-ggsave(
-  filename = "/data/sca/user_data/4/output/pmarker.png", # 保存的文件名称。通过后缀来决定生成什么格式的图片
-  width = 10000,             # 宽
-  height = 9000,            # 高
-  units = "px",          # 单位
-  dpi = 300,              # 分辨率DPI
-  plot = p_marker,
-  limitsize = FALSE
-)
-
 
 # rda=>load rds=>read
 #load("/data/sca/ref/reference.rds")
@@ -183,6 +170,42 @@ ggsave(
   units = "px",          # 单位
   dpi = 250,              # 分辨率DPI
   plot = plot_celltytpe,
+  limitsize = FALSE
+)
+
+### 测试 Marker 表达  出图
+genes_to_check <- c("DAZL","DDX4","MAGEA4","UTF1","FCGR3A","KIT","DMRT1","DMRTB1","STRA8","SYCP3", "SPO11", "MLH3","ZPBP","ID4","PIWIL4","UCHL1", "TNP1", "TNP2", "PRM2","SOX9", "WT1", "AMH", "PRND","FATE1","VWF","PECAM1","CDH5","DLK1", "IGF1","CYP11A1","STAR","NOTCH3","ACTA2","MYH11", "CYP26B1", "WFDC1","CD14", "CD163","C1QA","C1QC","CD8A","CD8B","PTPRC")
+p_all_markers <- DotPlot(aging, features = genes_to_check, assay='RNA' ,group.by = 'celltype' )  + coord_flip()
+
+dot_data<-p_all_markers$data
+
+colnames(dot_data)<-c("AverageExpression_unscaled","Precent Expressed","Features","celltype","Average Expression")
+
+####用ggplot画图####
+p_marker_dotplot = ggplot(dot_data,aes(celltype,Features,size = `Precent Expressed` ))+
+  geom_point(shape=21,aes(fill= `Average Expression`),position =position_dodge(0))+
+  theme_minimal()+xlab(NULL)+ylab(NULL) +
+  scale_size_continuous(range=c(1,10))+theme_bw()+
+  scale_fill_gradient(low = "grey", high = "#E54924")+
+  theme(legend.position = "right",legend.box = "vertical", #图例位置
+        legend.margin=margin(t= 0, unit='cm'),
+        legend.spacing = unit(0,"in"),
+        axis.text.x  = element_text(color="black",size=16,angle = 45, 
+                                    hjust=1),#x轴
+        axis.text.y  = element_text(color="black",size=12),#y轴
+        legend.text = element_text(size =12,color="black"),#图例
+        legend.title = element_text(size =12,color="black"),#图例
+        axis.title.y=element_text(vjust=1,  
+                                  size=16)
+  )+labs(x=" ",y = "Features")
+
+ggsave(
+  filename = "E:/singlecelltest/test_project/GSE112013_Combined_UMI_table/test_data_output/p_marker_dotplot.png", # 保存的文件名称。通过后缀来决定生成什么格式的图片
+  width = 4000,             # 宽
+  height = 2000,            # 高
+  units = "px",          # 单位
+  dpi = 250,              # 分辨率DPI
+  plot = p_marker_dotplot,
   limitsize = FALSE
 )
 
