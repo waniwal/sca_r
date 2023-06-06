@@ -220,9 +220,9 @@ colnames(celltype_ratio)[3] <- "freq"
 ## celltype_ratio是个数据框，可以提取细胞比例信息
 
 p_ratio <- ggplot(celltype_ratio) +
-  geom_bar(aes(y =freq, x= sample, fill = celltype),stat = "identity",width = 0.7,size = 0.5,colour = '#222222')+
+  geom_bar(aes(x=freq ,y =sample,  fill = celltype),stat = "identity",width = 0.7,size = 0.5,colour = '#222222')+
   theme_classic() +
-  labs(x='Sample',y = 'Ratio')+
+  labs(x='Ratio',y = 'Sample')+
   coord_flip()+
   theme(panel.border = element_rect(fill=NA,color="black", size=0.5, linetype="solid"))
 
@@ -239,11 +239,86 @@ ggsave(
 )
 
 
-# 基因差异分析
-DEG_all <- rbind.data.frame()
+## 分开生殖细胞与体细胞
+## 生殖细胞
+germ_cell <- c("Round S'tids","Sperm","Elongated S'tids","Late primary S'gonia","SSCs","Early primary S'gonia","Differentiating S'gonia")
+germ <- subset(aging,idents = germ_cell)
+germ$celltype <- germ@active.ident
+  
+## 体细胞
+somatic <- subset(aging,idents = germ_cell,invert = TRUE)
+somatic$celltype <- somatic@active.ident
+## 生殖细胞UMAP
 
-for(item in rev(unique(aging$celltype))){
-    tmp <- subset(aging,idents = item)
+
+## 定义运行的函数
+UmapCellratioFun <- function(cellOBj,celltype_prefix) {
+  ### 归一化后pca降维，寻找合适的维度拐点
+  # 归一化
+  cellOBj <- NormalizeData(cellOBj, normalization.method = "LogNormalize", scale.factor = 10000)####默认参数
+  # 寻找高变异基因->scale归一化->跑pca降维(主成分分析)
+  cellOBj <- FindVariableFeatures(cellOBj, selection.method = "vst", nfeatures = 1000)%>%ScaleData()%>%RunPCA()  ###nfeatures一般选2000-5000，对结果影响较大，需要手动选择
+  # 从拐点图选择合适的维度值
+  pca_num<-ElbowPlot(cellOBj, ndims = 40)
+  
+  # 去批次
+  library(harmony)
+  cellOBj <- RunHarmony(cellOBj, group.by.vars = "sample")
+  #降维聚类
+  cellOBj <- FindNeighbors(cellOBj, reduction = "harmony", dims = 1:20) %>% FindClusters(resolution = 0.2)
+  cellOBj <- RunUMAP(cellOBj, reduction = "harmony", dims = 1:20,label = T) %>% RunTSNE(reduction = "harmony",dims = 1:20,label = T)
+  
+  ## 用整体注释的细胞类型重新定义生殖细胞
+  Idents(cellOBj) <- cellOBj$celltype
+  
+  ## >>>> 出图
+  pumap<-DimPlot(cellOBj, reduction = "umap")
+  
+  ggsave(
+    filename = paste0("/data/sca/user_data/4/output/",celltype_prefix,"UMAP.png",seq = ""), # 保存的文件名称。通过后缀来决定生成什么格式的图片
+    width = 2600,             # 宽
+    height = 2000,            # 高
+    units = "px",          # 单位
+    dpi = 300,              # 分辨率DPI
+    plot = pumap,
+    limitsize = FALSE
+  )
+  
+  ## 细胞比例计算
+  ## 样本间的比例变化
+  celltype_ratio <- prop.table(table(Idents(cellOBj), cellOBj$sample), margin = 2)
+  celltype_ratio <- as.data.frame(celltype_ratio)
+  colnames(celltype_ratio)[1] <- "celltype"
+  colnames(celltype_ratio)[2] <- "sample"
+  colnames(celltype_ratio)[3] <- "freq"
+  ## celltype_ratio是个数据框，可以提取细胞比例信息
+  
+  p_ratio <- ggplot(celltype_ratio) +
+    geom_bar(aes(x=freq ,y =sample,  fill = celltype),stat = "identity",width = 0.7,size = 0.5,colour = '#222222')+
+    theme_classic() +
+    labs(x='Ratio',y = 'Sample')+
+    coord_flip()+
+    theme(panel.border = element_rect(fill=NA,color="black", size=0.5, linetype="solid"))
+  
+  jsonlite::toJSON(celltype_ratio, pretty = F)
+  
+  ggsave(
+    filename = paste0("/data/sca/user_data/4/output/",celltype_prefix,"CellRatio.png",seq = ""), # 保存的文件名称。通过后缀来决定生成什么格式的图片
+    width = 4000,             # 宽
+    height = 2000,            # 高
+    units = "px",          # 单位
+    dpi = 250,              # 分辨率DPI
+    plot = p_ratio,
+    limitsize = FALSE
+  )
+  
+  ## 差异分析
+  
+  # 基因差异分析
+  DEG_all <- rbind.data.frame()
+  
+  for(item in rev(unique(cellOBj$celltype))){
+    tmp <- subset(cellOBj,idents = item)
     errCheck = tryCatch({
       tmp.markers <- FindMarkers(tmp,group.by = "sample", ident.1 = "expr", ident.2 = "ctrl", min.pct = 0.1,logfc.threshold = 0.25)
       tmp.markers$gene <- rownames(tmp.markers)
@@ -258,164 +333,131 @@ for(item in rev(unique(aging$celltype))){
     }
     tmp.markers$cluster <- item
     DEG_all <- rbind.data.frame(DEG_all, tmp.markers)
-}
-
-write.csv(DEG_all, file = "/data/sca/user_data/4/output/different_expression_gene.csv")
-
-p_deg_volcano <- jjVolcano(diffData = DEG_all,  tile.col = corrplot::COL2('RdBu', length(table(DEG_all$cluster))))
-
-ggsave(
-  filename = "/data/sca/user_data/4/output/p_deg_volcano.png", # 保存的文件名称。通过后缀来决定生成什么格式的图片
-  width = 4000,             # 宽
-  height = 2000,            # 高
-  units = "px",          # 单位
-  dpi = 250,              # 分辨率DPI
-  plot = p_deg_volcano,
-  limitsize = FALSE
-)
-
-
-library(clusterProfiler)
-
-#### 针对差异基因进行通路富集分析，区分上调基因和下调基因
-go.enrich=function(gene){
-  eg = bitr(gene, fromType="SYMBOL", toType=c("ENTREZID","SYMBOL"), OrgDb="org.Hs.eg.db")
-  ego <- enrichGO(gene         = eg[,2],OrgDb= org.Hs.eg.db,
-                  ont           = "ALL",
-                  pAdjustMethod = "BH",
-                  pvalueCutoff  = 0.4,
-                  qvalueCutoff  = 0.2,readable = T)
-  if (is.null(ego) || is.null(ego@result) || length(rownames(ego@result)) == 0){
-     return(NULL);
   }
-  go=data.frame(ego@result)
-  go$GeneRatio2<-sapply(go$GeneRatio,function(x) eval(parse(text = x)))
-  return(go)
-}
-
-### 细胞类型的富集分析,针对基因的
-gene.enrich=function(data){
-  go<- rbind.data.frame()
-  for (i in unique(data$cluster)){
-    test=subset(data,cluster==i)
-    result=go.enrich(test$gene)
-    if(is.null(result)){
-       next;
+  
+  write.csv(DEG_all, file = paste0("/data/sca/user_data/4/output/",celltype_prefix,"different_expression_gene.csv",seq = ""))
+  
+  p_deg_volcano <- jjVolcano(diffData = DEG_all,  tile.col = corrplot::COL2('RdBu', length(table(DEG_all$cluster))))
+  
+  ggsave(
+    filename = paste0("/data/sca/user_data/4/output/",celltype_prefix,"p_deg_volcano.png",seq = ""),
+    width = 4000,             # 宽
+    height = 2000,            # 高
+    units = "px",          # 单位
+    dpi = 250,              # 分辨率DPI
+    plot = p_deg_volcano,
+    limitsize = FALSE
+  )
+  
+  
+  library(clusterProfiler)
+  
+  #### 针对差异基因进行通路富集分析，区分上调基因和下调基因
+  go.enrich=function(gene){
+    eg = bitr(gene, fromType="SYMBOL", toType=c("ENTREZID","SYMBOL"), OrgDb="org.Hs.eg.db")
+    ego <- enrichGO(gene         = eg[,2],OrgDb= org.Hs.eg.db,
+                    ont           = "ALL",
+                    pAdjustMethod = "BH",
+                    pvalueCutoff  = 0.4,
+                    qvalueCutoff  = 0.2,readable = T)
+    if (is.null(ego) || is.null(ego@result) || length(rownames(ego@result)) == 0){
+      return(NULL);
     }
-    result$cluster=i
-    go=rbind(go,result)
+    go=data.frame(ego@result)
+    go$GeneRatio2<-sapply(go$GeneRatio,function(x) eval(parse(text = x)))
+    return(go)
   }
-  return(go)
+  
+  ### 细胞类型的富集分析,针对基因的
+  gene.enrich=function(data){
+    go<- rbind.data.frame()
+    for (i in unique(data$cluster)){
+      test=subset(data,cluster==i)
+      result=go.enrich(test$gene)
+      if(is.null(result)){
+        next;
+      }
+      result$cluster=i
+      go=rbind(go,result)
+    }
+    return(go)
+  }
+  
+  
+  ### 上调基因
+  up=subset(DEG_all, p_val_adj<0.05 & avg_log2FC > 0.25)
+  up.go=gene.enrich(up)
+  
+  write.csv(up.go, file = paste0("/data/sca/user_data/4/output/",celltype_prefix,"upGo.csv",seq = ""))
+  
+  upGoTopN <- up.go %>% group_by(cluster) %>% arrange(p.adjust) %>% slice_head(n = 15) %>% arrange(desc(Count))
+  
+  ### 下调基因
+  down=subset(DEG_all, p_val_adj<0.05 & avg_log2FC < -0.25)
+  down.go=gene.enrich(down)
+  
+  write.csv(down.go, file = paste0("/data/sca/user_data/4/output/",celltype_prefix,"downGo.csv",seq = ""))
+  
+  downGoTopN <- down.go %>% group_by(cluster) %>% arrange(p.adjust) %>% slice_head(n = 15) %>% arrange(desc(Count))
+  
+  
+  #点图#
+  up_go_point_plot <- ggplot(upGoTopN,aes(x=cluster,y=reorder(Description,-pvalue),size=Count,color=-log10(pvalue)))+
+    geom_point()+theme_classic()+
+    theme(axis.text.x = element_text(color="black",size=13,angle=0,hjust=0.5),
+          axis.text.y = element_text(color="black",size=13),
+          axis.title.x = element_text( color="black",size=15),
+          axis.title.y = element_text( color="black",size=15))+
+    scale_color_gradient(low="lightgrey", high="red")+
+    xlab("Clusters") +  #x轴标签
+    ylab("Pathway") +  #y轴标签
+    labs(title = "Up Regulate GO Terms Enrichment")+  #设置标题
+    facet_wrap(~ONTOLOGY,ncol = 3)
+  
+  ggsave(
+    filename = paste0("/data/sca/user_data/4/output/",celltype_prefix,"up_go_point_plot.png",seq = ""),
+    width = 4000,             # 宽
+    height = 2000,            # 高
+    units = "px",          # 单位
+    dpi = 250,              # 分辨率DPI
+    plot = up_go_point_plot,
+    limitsize = FALSE
+  )
+  
+  
+  # 下调基因
+  #纵向点图#
+  down_go_point_plot <- ggplot(downGoTopN,aes(x=cluster,y=reorder(Description,-pvalue),size=Count,color=-log10(pvalue)))+
+    geom_point()+theme_classic()+
+    theme(axis.text.x = element_text(color="black",size=13,angle=0,hjust=0.5),
+          axis.text.y = element_text(color="black",size=13),
+          axis.title.x = element_text( color="black",size=15),
+          axis.title.y = element_text( color="black",size=15))+
+    scale_color_gradient(low="lightgrey", high="blue")+
+    xlab("Clusters") +  #x轴标签
+    ylab("Pathway") +  #y轴标签
+    labs(title = "Down Regulate GO Terms Enrichment")+  #设置标题
+    facet_wrap(~ONTOLOGY,ncol = 3)
+  
+  ggsave(
+    filename = paste0("/data/sca/user_data/4/output/",celltype_prefix,"down_go_point_plot.png",seq = ""),
+    width = 4000,             # 宽
+    height = 2000,            # 高
+    units = "px",          # 单位
+    dpi = 250,              # 分辨率DPI
+    plot = down_go_point_plot,
+    limitsize = FALSE
+  )
+  
 }
 
 
-### 上调基因
-up=subset(DEG_all, p_val_adj<0.05 & avg_log2FC > 0.25)
-up.go=gene.enrich(up)
 
-write.csv(up.go, file = "/data/sca/user_data/4/output/upGo.csv")
+## 调用函数
+## 运行生殖细胞
+UmapCellratioFun(germ,"germ")
 
-upGoTopN <- up.go %>% group_by(cluster) %>% arrange(p.adjust) %>% slice_head(n = 15) %>% arrange(desc(Count))
-
-### 下调基因
-down=subset(DEG_all, p_val_adj<0.05 & avg_log2FC < -0.25)
-down.go=gene.enrich(down)
-
-write.csv(down.go, file = "/data/sca/user_data/4/output/downGo.csv")
-
-downGoTopN <- down.go %>% group_by(cluster) %>% arrange(p.adjust) %>% slice_head(n = 15) %>% arrange(desc(Count))
-
-# 上调基因
-#纵向柱状图#
-up_go_bar_plot <- ggplot(upGoTopN,aes(x=Description,y=Count, fill=ONTOLOGY)) + #x、y轴定义；根据ONTOLOGY填充颜色
-  geom_bar(stat="identity", width=0.8) +  #柱状图宽度
-  scale_fill_manual(values = c("#6666FF", "#33CC33", "#FF6666") ) +  #柱状图填充颜色
-  facet_grid(ONTOLOGY~cluster, scale = 'free_y', space = 'free_y')+
-  coord_flip() +  #让柱状图变为纵向
-  xlab("GO term") +  #x轴标签
-  ylab("Gene_Number") +  #y轴标签
-  labs(title = "Up Regulate GO Terms Enrichment")+  #设置标题
-  theme_bw()
-
-ggsave(
-  filename = "/data/sca/user_data/4/output/up_go_bar_plot.png", # 保存的文件名称。通过后缀来决定生成什么格式的图片
-  width = 4000,             # 宽
-  height = 2000,            # 高
-  units = "px",          # 单位
-  dpi = 250,              # 分辨率DPI
-  plot = up_go_bar_plot,
-  limitsize = FALSE
-)
-
-#点图#
-up_go_point_plot <- ggplot(upGoTopN,aes(x=cluster,y=reorder(Description,-pvalue),size=Count,color=-log10(pvalue)))+
-  geom_point()+theme_classic()+
-  theme(axis.text.x = element_text(color="black",size=13,angle=0,hjust=0.5),
-        axis.text.y = element_text(color="black",size=13),
-        axis.title.x = element_text( color="black",size=15),
-        axis.title.y = element_text( color="black",size=15))+
-  scale_color_gradient(low="lightgrey", high="red")+
-  xlab("Clusters") +  #x轴标签
-  ylab("Pathway") +  #y轴标签
-  labs(title = "Up Regulate GO Terms Enrichment")+  #设置标题
-  facet_wrap(~ONTOLOGY,ncol = 3)
-
-ggsave(
-  filename = "/data/sca/user_data/4/output/up_go_point_plot.png", # 保存的文件名称。通过后缀来决定生成什么格式的图片
-  width = 4000,             # 宽
-  height = 2000,            # 高
-  units = "px",          # 单位
-  dpi = 250,              # 分辨率DPI
-  plot = up_go_point_plot,
-  limitsize = FALSE
-)
-
-# 下调基因
-#纵向柱状图#
-down_go_bar_plot <- ggplot(downGoTopN, aes(x=Description,y=Count, fill=ONTOLOGY)) + #x、y轴定义；根据ONTOLOGY填充颜色
-  geom_bar(stat="identity", width=0.8) +  #柱状图宽度
-  scale_fill_manual(values = c("#6666FF", "#33CC33", "#FF6666") ) +  #柱状图填充颜色
-  # facet_wrap("~ cluster")+
-  facet_grid(ONTOLOGY~cluster, scale = 'free_y', space = 'free_y')+
-  coord_flip() +  #让柱状图变为纵向
-  xlab("GO term") +  #x轴标签
-  ylab("Gene_Number") +  #y轴标签
-  labs(title = "Down Regulate GO Terms Enrichment")+  #设置标题
-  theme_bw()
-
-ggsave(
-  filename = "/data/sca/user_data/4/output/down_go_bar_plot.png", # 保存的文件名称。通过后缀来决定生成什么格式的图片
-  width = 4000,             # 宽
-  height = 2000,            # 高
-  units = "px",          # 单位
-  dpi = 250,              # 分辨率DPI
-  plot = down_go_bar_plot,
-  limitsize = FALSE
-)
-
-
-# 下调基因
-#纵向点图#
-down_go_point_plot <- ggplot(downGoTopN,aes(x=cluster,y=reorder(Description,-pvalue),size=Count,color=-log10(pvalue)))+
-  geom_point()+theme_classic()+
-  theme(axis.text.x = element_text(color="black",size=13,angle=0,hjust=0.5),
-        axis.text.y = element_text(color="black",size=13),
-        axis.title.x = element_text( color="black",size=15),
-        axis.title.y = element_text( color="black",size=15))+
-  scale_color_gradient(low="lightgrey", high="blue")+
-  xlab("Clusters") +  #x轴标签
-  ylab("Pathway") +  #y轴标签
-  labs(title = "Down Regulate GO Terms Enrichment")+  #设置标题
-  facet_wrap(~ONTOLOGY,ncol = 3)
-
-ggsave(
-  filename = "/data/sca/user_data/4/output/down_go_point_plot.png", # 保存的文件名称。通过后缀来决定生成什么格式的图片
-  width = 4000,             # 宽
-  height = 2000,            # 高
-  units = "px",          # 单位
-  dpi = 250,              # 分辨率DPI
-  plot = down_go_point_plot,
-  limitsize = FALSE
-)
+## 运行体细胞
+UmapCellratioFun(somatic,"somatic")
 
 
