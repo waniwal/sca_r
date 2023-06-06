@@ -78,7 +78,7 @@ pQC <- wrap_plots(p1, p2, p3, ncol = 3)
 # pQC<-VlnPlot(pbmc, features = c("percent.mt","nCount_RNA","nFeature_RNA"), ncol = 3,pt.size =0.1) ####查看数据原始分布情况
 
 ggsave(
-  filename = "/data/sca/user_data/4/output/plot_qc.png", # 保存的文件名称。通过后缀来决定生成什么格式的图片
+  filename = "/data/sca/user_data/18/output/plot_qc.png", # 保存的文件名称。通过后缀来决定生成什么格式的图片
   width = 2000,             # 宽
   height = 2000,            # 高
   units = "px",          # 单位
@@ -101,7 +101,7 @@ aging <- FindVariableFeatures(aging, selection.method = "vst", nfeatures = 2000)
 pca_num<-ElbowPlot(aging, ndims = 40)
 
 ggsave(
-  filename = "/data/sca/user_data/4/output/pca_dim_num.png", # 保存的文件名称。通过后缀来决定生成什么格式的图片
+  filename = "/data/sca/user_data/18/output/pca_dim_num.png", # 保存的文件名称。通过后缀来决定生成什么格式的图片
   width = 2000,             # 宽
   height = 2000,            # 高
   units = "px",          # 单位
@@ -122,7 +122,7 @@ aging <- RunUMAP(aging, reduction = "harmony", dims = 1:20,label = T) %>% RunTSN
 pumap<-DimPlot(aging, reduction = "umap",group.by=c("sample"),label = T)
 
 ggsave(
-  filename = "/data/sca/user_data/4/output/plot_umap.png", # 保存的文件名称。通过后缀来决定生成什么格式的图片
+  filename = "/data/sca/user_data/18/output/plot_umap.png", # 保存的文件名称。通过后缀来决定生成什么格式的图片
   width = 2600,             # 宽
   height = 2000,            # 高
   units = "px",          # 单位
@@ -164,7 +164,7 @@ aging$celltype <- aging@active.ident
 plot_celltytpe <- DimPlot(aging, group.by = c("seurat_clusters", "labels"),reduction = "umap",label = T)
 
 ggsave(
-  filename = "/data/sca/user_data/4/output/annotation_result.png", # 保存的文件名称。通过后缀来决定生成什么格式的图片
+  filename = "/data/sca/user_data/18/output/annotation_result.png", # 保存的文件名称。通过后缀来决定生成什么格式的图片
   width = 4000,             # 宽
   height = 2000,            # 高
   units = "px",          # 单位
@@ -229,7 +229,7 @@ p_ratio <- ggplot(celltype_ratio) +
 jsonlite::toJSON(celltype_ratio, pretty = F)
 
 ggsave(
-  filename = "/data/sca/user_data/4/output/p_ratio.png", # 保存的文件名称。通过后缀来决定生成什么格式的图片
+  filename = "/data/sca/user_data/18/output/p_ratio.png", # 保存的文件名称。通过后缀来决定生成什么格式的图片
   width = 4000,             # 宽
   height = 2000,            # 高
   units = "px",          # 单位
@@ -275,7 +275,7 @@ UmapCellratioFun <- function(cellOBj,celltype_prefix) {
   pumap<-DimPlot(cellOBj, reduction = "umap")
   
   ggsave(
-    filename = paste0("/data/sca/user_data/4/output/",celltype_prefix,"UMAP.png",seq = ""), # 保存的文件名称。通过后缀来决定生成什么格式的图片
+    filename = paste0("/data/sca/user_data/18/output/",celltype_prefix,"UMAP.png",seq = ""), # 保存的文件名称。通过后缀来决定生成什么格式的图片
     width = 2600,             # 宽
     height = 2000,            # 高
     units = "px",          # 单位
@@ -303,7 +303,7 @@ UmapCellratioFun <- function(cellOBj,celltype_prefix) {
   jsonlite::toJSON(celltype_ratio, pretty = F)
   
   ggsave(
-    filename = paste0("/data/sca/user_data/4/output/",celltype_prefix,"CellRatio.png",seq = ""), # 保存的文件名称。通过后缀来决定生成什么格式的图片
+    filename = paste0("/data/sca/user_data/18/output/",celltype_prefix,"CellRatio.png",seq = ""), # 保存的文件名称。通过后缀来决定生成什么格式的图片
     width = 4000,             # 宽
     height = 2000,            # 高
     units = "px",          # 单位
@@ -335,12 +335,12 @@ UmapCellratioFun <- function(cellOBj,celltype_prefix) {
     DEG_all <- rbind.data.frame(DEG_all, tmp.markers)
   }
   
-  write.csv(DEG_all, file = paste0("/data/sca/user_data/4/output/",celltype_prefix,"different_expression_gene.csv",seq = ""))
+  write.csv(DEG_all, file = paste0("/data/sca/user_data/18/output/",celltype_prefix,"different_expression_gene.csv",seq = ""))
   
   p_deg_volcano <- jjVolcano(diffData = DEG_all,  tile.col = corrplot::COL2('RdBu', length(table(DEG_all$cluster))))
   
   ggsave(
-    filename = paste0("/data/sca/user_data/4/output/",celltype_prefix,"p_deg_volcano.png",seq = ""),
+    filename = paste0("/data/sca/user_data/18/output/",celltype_prefix,"p_deg_volcano.png",seq = ""),
     width = 4000,             # 宽
     height = 2000,            # 高
     units = "px",          # 单位
@@ -388,7 +388,7 @@ UmapCellratioFun <- function(cellOBj,celltype_prefix) {
   up=subset(DEG_all, p_val_adj<0.05 & avg_log2FC > 0.25)
   up.go=gene.enrich(up)
   
-  write.csv(up.go, file = paste0("/data/sca/user_data/4/output/",celltype_prefix,"upGo.csv",seq = ""))
+  write.csv(up.go, file = paste0("/data/sca/user_data/18/output/",celltype_prefix,"upGo.csv",seq = ""))
   
   upGoTopN <- up.go %>% group_by(cluster) %>% arrange(p.adjust) %>% slice_head(n = 15) %>% arrange(desc(Count))
   
@@ -396,7 +396,7 @@ UmapCellratioFun <- function(cellOBj,celltype_prefix) {
   down=subset(DEG_all, p_val_adj<0.05 & avg_log2FC < -0.25)
   down.go=gene.enrich(down)
   
-  write.csv(down.go, file = paste0("/data/sca/user_data/4/output/",celltype_prefix,"downGo.csv",seq = ""))
+  write.csv(down.go, file = paste0("/data/sca/user_data/18/output/",celltype_prefix,"downGo.csv",seq = ""))
   
   downGoTopN <- down.go %>% group_by(cluster) %>% arrange(p.adjust) %>% slice_head(n = 15) %>% arrange(desc(Count))
   
@@ -415,7 +415,7 @@ UmapCellratioFun <- function(cellOBj,celltype_prefix) {
     facet_wrap(~ONTOLOGY,ncol = 3)
   
   ggsave(
-    filename = paste0("/data/sca/user_data/4/output/",celltype_prefix,"up_go_point_plot.png",seq = ""),
+    filename = paste0("/data/sca/user_data/18/output/",celltype_prefix,"up_go_point_plot.png",seq = ""),
     width = 4000,             # 宽
     height = 2000,            # 高
     units = "px",          # 单位
@@ -440,7 +440,7 @@ UmapCellratioFun <- function(cellOBj,celltype_prefix) {
     facet_wrap(~ONTOLOGY,ncol = 3)
   
   ggsave(
-    filename = paste0("/data/sca/user_data/4/output/",celltype_prefix,"down_go_point_plot.png",seq = ""),
+    filename = paste0("/data/sca/user_data/18/output/",celltype_prefix,"down_go_point_plot.png",seq = ""),
     width = 4000,             # 宽
     height = 2000,            # 高
     units = "px",          # 单位
