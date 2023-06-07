@@ -404,7 +404,7 @@ UmapCellratioFun <- function(cellOBj,celltype_prefix) {
   #点图#
   up_go_point_plot <- ggplot(upGoTopN,aes(x=cluster,y=reorder(Description,-pvalue),size=Count,color=-log10(pvalue)))+
     geom_point()+theme_classic()+
-    theme(axis.text.x = element_text(color="black",size=13,angle=0,hjust=0.5),
+    theme(axis.text.x = element_text(color="black",size=13,angle=90,hjust=1,vjust=1),
           axis.text.y = element_text(color="black",size=13),
           axis.title.x = element_text( color="black",size=15),
           axis.title.y = element_text( color="black",size=15))+
@@ -429,7 +429,7 @@ UmapCellratioFun <- function(cellOBj,celltype_prefix) {
   #纵向点图#
   down_go_point_plot <- ggplot(downGoTopN,aes(x=cluster,y=reorder(Description,-pvalue),size=Count,color=-log10(pvalue)))+
     geom_point()+theme_classic()+
-    theme(axis.text.x = element_text(color="black",size=13,angle=0,hjust=0.5),
+    theme(axis.text.x = element_text(color="black",size=13,angle=90,hjust=1,vjust=1),
           axis.text.y = element_text(color="black",size=13),
           axis.title.x = element_text( color="black",size=15),
           axis.title.y = element_text( color="black",size=15))+
