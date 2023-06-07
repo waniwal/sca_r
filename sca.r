@@ -348,10 +348,39 @@ UmapCellratioFun <- function(cellOBj,celltype_prefix) {
     plot = p_deg_volcano,
     limitsize = FALSE
   )
+
+  ####差异基因数统计
+  count=subset(DEG_all,p_val_adj<0.05 & abs(avg_log2FC) > 0.25)
+  count=data.frame(table(count$cluster,count$avg_log2FC>0.25))
+  colnames(count)=c("cluster","log2FC","Freq")
+  count$Freq2=ifelse(count$log2FC=="TRUE",count$Freq,0-count$Freq)
+  count$fill=ifelse(count$log2FC=="TRUE","Up","Down")
+  count$fill=factor(count$fill,levels = c("Up","Down"))
+  deg_bar_plot=ggplot(count,aes(x=cluster,y=Freq2,fill=fill))+geom_bar(stat='identity',position='stack')+
+         theme_classic()+
+         theme(axis.text.x = element_text(color="black",size=13,angle=0,hjust=0.5),
+               axis.text.y = element_text(color="black",size=13),
+               axis.title.x = element_text( color="black",size=15),
+               axis.title.y = element_text( color="black",size=15))+
+    guides(fill=guide_legend(title=NULL))+
+    geom_text(label=count$Freq,nudge_x = 0,nudge_y = 1)+
+         xlab("Clusters") +  #x轴标签
+         ylab("DEG counts") +  #y轴标签
+         labs(title = "Differention Expression Gene Counts")  #设置标题
+  
+    ggsave(
+    filename = paste0("/data/sca/user_data/18/output/",celltype_prefix,"deg_bar_plot.png",seq = ""),
+    width = 4000,             # 宽
+    height = 2000,            # 高
+    units = "px",          # 单位
+    dpi = 250,              # 分辨率DPI
+    plot = deg_bar_plot,
+    limitsize = FALSE)
+         
   
   
   library(clusterProfiler)
-  
+ 
   #### 针对差异基因进行通路富集分析，区分上调基因和下调基因
   go.enrich=function(gene){
     eg = bitr(gene, fromType="SYMBOL", toType=c("ENTREZID","SYMBOL"), OrgDb="org.Hs.eg.db")
@@ -404,7 +433,7 @@ UmapCellratioFun <- function(cellOBj,celltype_prefix) {
   #点图#
   up_go_point_plot <- ggplot(upGoTopN,aes(x=cluster,y=reorder(Description,-pvalue),size=Count,color=-log10(pvalue)))+
     geom_point()+theme_classic()+
-    theme(axis.text.x = element_text(color="black",size=13,angle=90,hjust=1,vjust=1),
+    theme(axis.text.x = element_text(color="black",size=13,angle=0,hjust=0.5),
           axis.text.y = element_text(color="black",size=13),
           axis.title.x = element_text( color="black",size=15),
           axis.title.y = element_text( color="black",size=15))+
@@ -429,7 +458,7 @@ UmapCellratioFun <- function(cellOBj,celltype_prefix) {
   #纵向点图#
   down_go_point_plot <- ggplot(downGoTopN,aes(x=cluster,y=reorder(Description,-pvalue),size=Count,color=-log10(pvalue)))+
     geom_point()+theme_classic()+
-    theme(axis.text.x = element_text(color="black",size=13,angle=90,hjust=1,vjust=1),
+    theme(axis.text.x = element_text(color="black",size=13,angle=0,hjust=0.5),
           axis.text.y = element_text(color="black",size=13),
           axis.title.x = element_text( color="black",size=15),
           axis.title.y = element_text( color="black",size=15))+
