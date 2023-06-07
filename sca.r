@@ -481,7 +481,6 @@ UmapCellratioFun <- function(cellOBj,celltype_prefix) {
 }
 
 
-
 ## 调用函数
 ## 运行生殖细胞
 UmapCellratioFun(germ,"germ")
