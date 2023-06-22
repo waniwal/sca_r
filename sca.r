@@ -23,7 +23,7 @@ readData <- function(dirPath, fileList, project) {
   }else if (filesCount == 1) {
     obj.counts <- NULL
     if (endsWith(fileList, ".csv")) {
-      obj.counts = read.csv(fileList, header = T)
+      obj.counts = read.csv(fileList, header = T, row.names = 1)
     }else if (endsWith(fileList, ".txt")) {
       obj.counts = read.table(fileList, header = T)
     }
