@@ -432,9 +432,14 @@ UmapCellratioFun <- function(cellOBj, celltype_prefix) {
 
 
   ### 上调基因
-  up = subset(DEG_all, p_val_adj < 0.05 & avg_log2FC > 0.25)
+  up = subset(DEG_all, p_val_adj < 0.05 & avg_log2FC > 0.25 )
   up.go = gene.enrich(up)
-
+  #####筛选通路
+  # 定义要排除的关键词
+  keywords <- c("cytoplasmic translation","aerobic respiration","ribosome,rRNA processing","rRNA metabolic process","translational initiation","RNA capping","ncRNA processing","regulation of translation","RNA splicing","mRNA splicing","protein targeting","translational elongation","maturation of SSU-rRNA","respiratory burst","entry into host","fructose,maturation of LSU-rRNA","ribosome localization","cytochrome complex assembly","'de novo' protein folding","lung alveolus development","ossification","artery morphogenesis","lung development","ovulation","regulation of body fluid levels","liver morphogenesis","lung morphogenesis","neural tube development","neural tube closure","endoderm formation","exploration behavior","tube closure","lung cell differentiation","lung epithelial cell differentiation","digestive tract development","primary neural tube formation","hair follicle morphogenesis","RNA modification","vesicle cargo loading","virion assembly","ovulation cycle","response to food","locomotory behavior","Golgi vesicle budding","centriole replication","bleb assembly","biological phase","elastic fiber assembly","lactation","luteinization","visual system development","endoderm development","telencephalon development","reproductive behavior","ruffle assembly","centriole assembly","associative learning","adhesion of symbiont to host cell","visual learning","intracellular lipid transport","protein destabilization","mitochondrial translation","cellular response to starvation","response to caffeine","radial glial cell differentiation","neuron migration","centriole-centriole cohesion","motor behavior","protein homotrimerization","left/right axis specification","mitochondrion disassembly","axis specification","response to dsRNA","trophoblast cell migration","glial cell migration","oocyte development","embryo implantation","mRNA cleavage","mRNA stabilization","mRNA catabolic process","hindbrain development","oocyte differentiation","sialylation","heart contraction","RNA catabolic process","heart looping","protein sumoylation","cardiocyte differentiation","eye morphogenesis","histone H2A monoubiquitination","heart process","nucleic acid transport","RNA transport","mitochondrial gene expression","maturation of 5.8S rRNA from tricistronic rRNA transcript","translation","translational initiation","RNA binding","RNA splicing","protein binding","transcription","RNA polymerase II transcriptional preinitiation complex assembly")
+  # 使用grepl()函数进行筛选
+  up.go <- up.go[!grepl(paste(keywords, collapse = "|"), up.go$Description), ]
+  up.go <- subset(up.go, Count >= 2)
   write.csv(up.go, file = paste0("/data/sca/user_data/18/output/", celltype_prefix, "upGo.csv", seq = ""))
 
   upGoTopN <- up.go %>%
@@ -446,7 +451,12 @@ UmapCellratioFun <- function(cellOBj, celltype_prefix) {
   ### 下调基因
   down = subset(DEG_all, p_val_adj < 0.05 & avg_log2FC < -0.25)
   down.go = gene.enrich(down)
-
+  #####筛选通路
+  # 定义要排除的关键词
+  keywords <- c("cytoplasmic translation","aerobic respiration","ribosome,rRNA processing","rRNA metabolic process","translational initiation","RNA capping","ncRNA processing","regulation of translation","RNA splicing","mRNA splicing","protein targeting","translational elongation","maturation of SSU-rRNA","respiratory burst","entry into host","fructose,maturation of LSU-rRNA","ribosome localization","cytochrome complex assembly","'de novo' protein folding","lung alveolus development","ossification","artery morphogenesis","lung development","ovulation","regulation of body fluid levels","liver morphogenesis","lung morphogenesis","neural tube development","neural tube closure","endoderm formation","exploration behavior","tube closure","lung cell differentiation","lung epithelial cell differentiation","digestive tract development","primary neural tube formation","hair follicle morphogenesis","RNA modification","vesicle cargo loading","virion assembly","ovulation cycle","response to food","locomotory behavior","Golgi vesicle budding","centriole replication","bleb assembly","biological phase","elastic fiber assembly","lactation","luteinization","visual system development","endoderm development","telencephalon development","reproductive behavior","ruffle assembly","centriole assembly","associative learning","adhesion of symbiont to host cell","visual learning","intracellular lipid transport","protein destabilization","mitochondrial translation","cellular response to starvation","response to caffeine","radial glial cell differentiation","neuron migration","centriole-centriole cohesion","motor behavior","protein homotrimerization","left/right axis specification","mitochondrion disassembly","axis specification","response to dsRNA","trophoblast cell migration","glial cell migration","oocyte development","embryo implantation","mRNA cleavage","mRNA stabilization","mRNA catabolic process","hindbrain development","oocyte differentiation","sialylation","heart contraction","RNA catabolic process","heart looping","protein sumoylation","cardiocyte differentiation","eye morphogenesis","histone H2A monoubiquitination","heart process","nucleic acid transport","RNA transport","mitochondrial gene expression","maturation of 5.8S rRNA from tricistronic rRNA transcript","translation","translational initiation","RNA binding","RNA splicing","protein binding","transcription","RNA polymerase II transcriptional preinitiation complex assembly")
+  # 使用grepl()函数进行筛选
+  down.go <- down.go[!grepl(paste(keywords, collapse = "|"), down.go$Description), ]
+  down.go <- subset(down.go, Count >= 2)
   write.csv(down.go, file = paste0("/data/sca/user_data/18/output/", celltype_prefix, "downGo.csv", seq = ""))
 
   downGoTopN <- down.go %>%
