@@ -1,0 +1,21 @@
+celltype,Disease,pathway,gene_up
+Sertoli,AZFa,humoral immune response,LINC00684
+Sertoli,AZFa,collagen metabolic process,MIF
+Sertoli,AZFa,regulation of immune system process,MALAT1
+Sertoli,AZFa,response to estradiol,DEFB119
+Sertoli,AZFa,ERK1 and ERK2 cascade,
+Sertoli,AZFa,response to epidermal growth factor,
+Sertoli,Normal,chromosome localization,MZT2B
+Sertoli,Normal,double-strand break repair,BRI3
+Sertoli,Normal,Autophagy,MAP2K2
+,,,
+Sertoli,KS,protein localization to endoplasmic reticulum,B2M
+Sertoli,KS,translational initiation,IGFBP7
+Sertoli,KS,Oxidative phosphorylation,MIF
+Sertoli,KS,response to interferon-alpha,LINC00684
+Sertoli,KS,humoral immune response,
+Sertoli,,,
+Sertoli,Normal,Circadian rhythm,RPL3P4
+Sertoli,Normal,protein autophosphorylation,SYNE2
+Sertoli,Normal,Estrogen signaling pathway,BEX3
+Sertoli,Normal,Gap junction,MACF1

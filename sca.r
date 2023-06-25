@@ -223,6 +223,18 @@ ggsave(
   limitsize = FALSE
 )
 
+## 特定marker基因的Featureplot展示
+p_markers_features <- FeaturePlot(aging,features = c("DDX4","VIM","PTPRC","CD68")
+
+ggsave(
+  filename = "E:/singlecelltest/test_project/GSE112013_Combined_UMI_table/test_data_output/p_marker_featureplot.png", # 保存的文件名称。通过后缀来决定生成什么格式的图片
+  width = 4000,             # 宽
+  height = 2000,            # 高
+  units = "px",          # 单位
+  dpi = 250,              # 分辨率DPI
+  plot = p_markers_features,
+  limitsize = FALSE
+)
 
 ## 细胞比例计算
 ## 样本间的比例变化
@@ -325,6 +337,19 @@ UmapCellratioFun <- function(cellOBj, celltype_prefix) {
     units = "px",          # 单位
     dpi = 250,              # 分辨率DPI
     plot = p_ratio,
+    limitsize = FALSE
+  )
+
+  ## 使用scRNAtoolVis的方法进行比例计算
+  p_ratio_v2 <- cellRatioPlot(object = cellOBj,sample.name = "sample",celltype.name = "celltype",col.width = 0.5,flow.alpha = 0.3)
+
+  ggsave(
+    filename = paste0("/data/sca/user_data/18/output/", celltype_prefix, "CellRatio_v2.png", seq = ""), # 保存的文件名称。通过后缀来决定生成什么格式的图片
+    width = 4000,             # 宽
+    height = 2000,            # 高
+    units = "px",          # 单位
+    dpi = 250,              # 分辨率DPI
+    plot = p_ratio_v2,
     limitsize = FALSE
   )
 
